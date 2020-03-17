@@ -47,3 +47,25 @@ void buffer_free(struct buffer *b) {
         p = t;
     }
 }
+
+void buffer_push_string(struct buffer *b) {
+    size_t size = buffer_size(b);
+    if (size <= INITIAL_SIZE) {
+        lua_pushlstring(b->L, b->head->data, size);
+    } else {
+        void *ud;
+        lua_Alloc alloc = lua_getallocf(b->L, &ud);
+
+        char *str = (char *)alloc(ud, NULL, 0, size);
+        char *s = str;
+        struct block *p = b->head;
+        while (p) {
+            memcpy(s, p->data, p->p);
+            s += p->p;
+            p = p->next;
+        }
+
+        lua_pushlstring(b->L, str, size);
+        alloc(ud, str, size, 0);
+    }
+}

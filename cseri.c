@@ -13,7 +13,7 @@ LUA_API int luaopen_cseri(lua_State *L) {
         {NULL, NULL}
     };
 #if LUA_VERSION_NUM < 502
-	luaL_register(L, "cseri", l);
+    luaL_register(L, "cseri", l);
 #else
     luaL_newlib(L, l);
 #endif

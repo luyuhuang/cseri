@@ -56,4 +56,20 @@ local a, b, c, d = load("return " .. txt)()
 
 assert(a == 1 and b == '2' and c == true and d.a == 1)
 
+local llstr = 'a'
+for i = 1, 14 do
+    llstr = llstr .. llstr
+end
+t.llstr = llstr
+
+local bin = cseri.tobin(t)
+local nt = cseri.frombin(bin)
+
+assert(compare(t, nt))
+
+local txt = cseri.totxt(t)
+local nt = load("return " .. txt)()
+
+assert(compare(t, nt))
+
 print("passed")

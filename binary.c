@@ -250,21 +250,7 @@ int to_bin(lua_State *L) {
         pack_one(L, &bf, i, 0);
     }
 
-    struct block *p = bf.head;
-    luaL_Buffer buffer;
-
-#if LUA_VERSION_NUM < 503
-    luaL_buffinit(L, &buffer);
-#else
-    size_t size = buffer_size(&bf);
-    luaL_buffinitsize(L, &buffer, size);
-#endif
-    while (p) {
-        luaL_addlstring(&buffer, p->data, p->p);
-        p = p->next;
-    }
-
-    luaL_pushresult(&buffer);
+    buffer_push_string(&bf);
     buffer_free(&bf);
 
     return 1;

@@ -27,6 +27,7 @@ struct buffer {
 void buffer_initialize(struct buffer *b, lua_State *L);
 void buffer_append(struct buffer *b, const char *data, size_t len);
 void buffer_free(struct buffer *b);
+void buffer_push_string(struct buffer *b);
 
 inline static void buffer_append_char(struct buffer *b, char c) {
     buffer_append(b, &c, 1);
