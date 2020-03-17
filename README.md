@@ -4,7 +4,7 @@ A Lua object serializer implemented by C.
 
 ## Introduction
 
-Cseri is a Lua object serializer implemented by C, which is able to serialize Lua objects to binary data or readable strings. For serialize to binary data, it borrows partly from [cloudwu/lua-serialize](https://github.com/cloudwu/lua-serialize). For serialize to readable strings, it runs about twice as fast as Lua's implementation.
+Cseri is a Lua object serializer implemented by C, which is able to serialize Lua objects to binary data or readable strings. For serialize to binary data, it borrows partly from [cloudwu/lua-serialize](https://github.com/cloudwu/lua-serialize). For serialize to readable strings, it runs about 4 times as fast as Lua's implementation.
 
 - [x] Serialize to binary data and deserialize from binary data;
 - [x] Serialize to readable strings;
