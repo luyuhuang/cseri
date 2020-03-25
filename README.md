@@ -45,5 +45,5 @@ local bin = cseri.tobin(1, "abc", true, 3.14)
 print(cseri.frombin(bin)) -- 1 abc true 3.14
 
 -- Serialize to a readable string
-print(cseri.totxt({a = 1, b = "value"}, "str")) -- {["b"]="value",["a"]=1},"str"
+print(cseri.totxt({a = 1, b = "value"}, "str")) -- {a=1,b="value"},"str"
 ```
