@@ -1,6 +1,8 @@
 #include <lauxlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include "buffer.h"
 
 static const char *char2escape[256] = {
@@ -42,7 +44,32 @@ static const char *char2escape[256] = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
-static void _serialize(lua_State *L, int idx, struct buffer *bf) {
+inline static bool
+is_name(const char *str, size_t len) {
+    if (len == 0) return false;
+    char c = *str;
+    if (c != '_' && !isalpha(c))
+        return false;
+    for (size_t i = 1; i < len; ++i) {
+        c = str[i];
+        if (c != '_' && !isalpha(c) && !isdigit(c))
+            return false;
+    }
+    return true;
+}
+
+inline static void
+append_escape_string(struct buffer *bf, const char *str, size_t len) {
+    for (int i = 0; i < len; ++i) {
+        const char *esc = char2escape[(unsigned char)str[i]];
+        if (esc)
+            buffer_append_str(bf, esc);
+        else
+            buffer_append_char(bf, str[i]);
+    }
+}
+
+static void _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key) {
     int type = lua_type(L, idx);
     char numbuff[64] = {0};
     switch(type) {
@@ -50,6 +77,7 @@ static void _serialize(lua_State *L, int idx, struct buffer *bf) {
         buffer_append_lstr(bf, "nil", 3);
         break;
     case LUA_TNUMBER:
+        if (is_key) buffer_append_char(bf, '[');
 #if LUA_VERSION_NUM < 503
         {
             int len = lua_number2str(numbuff, lua_tonumber(L, idx));
@@ -64,29 +92,38 @@ static void _serialize(lua_State *L, int idx, struct buffer *bf) {
             int len = lua_number2str(numbuff, sizeof(numbuff), lua_tonumber(L, idx));
             buffer_append_lstr(bf, numbuff, len);
         }
+        if (is_key) buffer_append_lstr(bf, "]=", 2);
         break;
 #endif
     case LUA_TBOOLEAN:
+        if (is_key) buffer_append_char(bf, '[');
         if (lua_toboolean(L, idx))
             buffer_append_lstr(bf, "true", 4);
         else
             buffer_append_lstr(bf, "false", 5);
+        if (is_key) buffer_append_lstr(bf, "]=", 2);
         break;
     case LUA_TSTRING: {
         size_t len;
         const char *str = lua_tolstring(L, idx, &len);
-        buffer_append_char(bf, '"');
-        for (int i = 0; i < len; ++i) {
-            const char *esc = char2escape[(unsigned char)str[i]];
-            if (esc)
-                buffer_append_str(bf, esc);
-            else
-                buffer_append_char(bf, str[i]);
+        if (is_key) {
+            if (is_name(str, len)) {
+                buffer_append_lstr(bf, str, len);
+                buffer_append_char(bf, '=');
+            } else {
+                buffer_append_lstr(bf, "[\"", 2);
+                append_escape_string(bf, str, len);
+                buffer_append_lstr(bf, "\"]=", 3);
+            }
+        } else {
+            buffer_append_char(bf, '"');
+            append_escape_string(bf, str, len);
+            buffer_append_char(bf, '"');
         }
-        buffer_append_char(bf, '"');
         break;
     }
     case LUA_TTABLE:
+        if (is_key) buffer_append_char(bf, '[');
         lua_pushnil(L);
         buffer_append_char(bf, '{');
         int first = 1;
@@ -96,13 +133,12 @@ static void _serialize(lua_State *L, int idx, struct buffer *bf) {
             else
                 buffer_append_char(bf, ',');
             int top = lua_gettop(L);
-            buffer_append_char(bf, '[');
-            _serialize(L, top - 1, bf);
-            buffer_append_lstr(bf, "]=", 2);
-            _serialize(L, top, bf);
+            _serialize(L, top - 1, bf, true);
+            _serialize(L, top, bf, false);
             lua_pop(L, 1);
         }
         buffer_append_char(bf, '}');
+        if (is_key) buffer_append_lstr(bf, "]=", 2);
         break;
     default:
         buffer_free(bf);
@@ -117,7 +153,7 @@ int to_txt(lua_State *L) {
     for (int i = 1; i <= lua_gettop(L); ++i) {
         if (i != 1)
             buffer_append_char(&bf, ',');
-        _serialize(L, i, &bf);
+        _serialize(L, i, &bf, false);
     }
 
     buffer_push_string(&bf);

@@ -26,14 +26,19 @@ local t = {
     3, 4, 5,
     key = {
         a = '123',
-        b = true,
+        [false] = true,
         c = [[
             {1, 2, 3, 4, 5}
             "aaa\\bbb"
             'c''d'
         ]],
         ['sdf"\'\n\r,'] = 3.1415926,
+        [''] = '',
     },
+    name = {
+        _1 = 1, ['1ab'] = 2,
+        ['1_2_a3'] = 3, _1ab_ = 4,
+    }
 }
 
 local bin = cseri.tobin(t)
