@@ -77,4 +77,29 @@ local nt = load("return " .. txt)()
 
 assert(compare(t, nt))
 
+local deep = {}
+local p = deep
+for i = 1, 32 do
+    p[i] = {}
+    p = p[i]
+end
+
+local txt = cseri.totxt(deep)
+local nt = load("return " .. txt)()
+
+assert(compare(deep, nt))
+
+local bin = cseri.tobin(deep)
+local nt = cseri.frombin(bin)
+
+assert(compare(deep, nt))
+
+p[33] = 1
+
+local ok, msg = pcall(cseri.totxt, deep)
+assert(ok == false and msg == "serialize can't pack too depth table")
+
+local ok, msg = pcall(cseri.tobin, deep)
+assert(ok == false and msg == "serialize can't pack too depth table")
+
 print("passed")

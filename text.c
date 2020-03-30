@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include "buffer.h"
 
+#define MAX_DEPTH 32
+
 static const char *char2escape[256] = {
     "\\u0000", "\\u0001", "\\u0002", "\\u0003",
     "\\u0004", "\\u0005", "\\u0006", "\\u0007",
@@ -69,7 +71,13 @@ append_escape_string(struct buffer *bf, const char *str, size_t len) {
     }
 }
 
-static void _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key) {
+static void
+_serialize(lua_State *L, int idx, struct buffer *bf, bool is_key, int depth) {
+    if (depth > MAX_DEPTH) {
+        buffer_free(bf);
+        luaL_error(L, "serialize can't pack too depth table");
+    }
+
     int type = lua_type(L, idx);
     char numbuff[64] = {0};
     switch(type) {
@@ -123,6 +131,7 @@ static void _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key) {
         break;
     }
     case LUA_TTABLE:
+        luaL_checkstack(L, LUA_MINSTACK, NULL);
         if (is_key) buffer_append_char(bf, '[');
         lua_pushnil(L);
         buffer_append_char(bf, '{');
@@ -133,8 +142,8 @@ static void _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key) {
             else
                 buffer_append_char(bf, ',');
             int top = lua_gettop(L);
-            _serialize(L, top - 1, bf, true);
-            _serialize(L, top, bf, false);
+            _serialize(L, top - 1, bf, true, depth + 1);
+            _serialize(L, top, bf, false, depth + 1);
             lua_pop(L, 1);
         }
         buffer_append_char(bf, '}');
@@ -153,7 +162,7 @@ int to_txt(lua_State *L) {
     for (int i = 1; i <= lua_gettop(L); ++i) {
         if (i != 1)
             buffer_append_char(&bf, ',');
-        _serialize(L, i, &bf, false);
+        _serialize(L, i, &bf, false, 0);
     }
 
     buffer_push_string(&bf);
