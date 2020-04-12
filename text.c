@@ -84,14 +84,11 @@ _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key, int depth) {
     case LUA_TNIL:
         buffer_append_lstr(bf, "nil", 3);
         break;
-    case LUA_TNUMBER:
+    case LUA_TNUMBER: {
         if (is_key) buffer_append_char(bf, '[');
 #if LUA_VERSION_NUM < 503
-        {
-            int len = lua_number2str(numbuff, lua_tonumber(L, idx));
-            buffer_append_lstr(bf, numbuff, len);
-            break;
-        }
+        int len = lua_number2str(numbuff, lua_tonumber(L, idx));
+        buffer_append_lstr(bf, numbuff, len);
 #else
         if (lua_isinteger(L, idx)) {
             int len = lua_integer2str(numbuff, sizeof(numbuff), lua_tointeger(L, idx));
@@ -100,9 +97,10 @@ _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key, int depth) {
             int len = lua_number2str(numbuff, sizeof(numbuff), lua_tonumber(L, idx));
             buffer_append_lstr(bf, numbuff, len);
         }
+#endif
         if (is_key) buffer_append_lstr(bf, "]=", 2);
         break;
-#endif
+    }
     case LUA_TBOOLEAN:
         if (is_key) buffer_append_char(bf, '[');
         if (lua_toboolean(L, idx))
