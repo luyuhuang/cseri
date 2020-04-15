@@ -3,9 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include "common.h"
 #include "buffer.h"
-
-#define MAX_DEPTH 32
 
 static const char *char2escape[256] = {
     "\\u0000", "\\u0001", "\\u0002", "\\u0003",
@@ -128,13 +127,33 @@ _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key, int depth) {
         }
         break;
     }
-    case LUA_TTABLE:
+    case LUA_TTABLE: {
         luaL_checkstack(L, LUA_MINSTACK, NULL);
         if (is_key) buffer_append_char(bf, '[');
-        lua_pushnil(L);
         buffer_append_char(bf, '{');
-        int first = 1;
+
+        bool first = 1;
+        int len = lua_rawlen(L, idx);
+        for (int i = 1; i <= len; ++i) {
+            if (first)
+                first = 0;
+            else
+                buffer_append_char(bf, ',');
+            lua_rawgeti(L, idx, i);
+            int top = lua_gettop(L);
+            _serialize(L, top, bf, false, depth + 1);
+            lua_pop(L, 1);
+        }
+
+        lua_pushnil(L);
         while (lua_next(L, idx)) {
+            if (lua_type(L, -2) == LUA_TNUMBER && lua_isinteger(L, -2)) {
+                lua_Integer i = lua_tointeger(L, -2);
+                if (i > 0 && i <= len) {
+                    lua_pop(L, 1);
+                    continue;
+                }
+            }
             if (first)
                 first = 0;
             else
@@ -144,9 +163,11 @@ _serialize(lua_State *L, int idx, struct buffer *bf, bool is_key, int depth) {
             _serialize(L, top, bf, false, depth + 1);
             lua_pop(L, 1);
         }
+
         buffer_append_char(bf, '}');
         if (is_key) buffer_append_lstr(bf, "]=", 2);
         break;
+    }
     default:
         buffer_free(bf);
         luaL_error(L, "Bad type: %s", lua_typename(L, type));
