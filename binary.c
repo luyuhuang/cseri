@@ -265,8 +265,7 @@ static const void *reader_read(struct reader *rd, int size) {
 
 static inline void
 invalid_stream_line(lua_State *L, struct reader *rd, int line) {
-    int len = rd->len;
-    luaL_error(L, "Invalid serialize stream %d (line:%d)", len, line);
+    luaL_error(L, "Invalid serialize stream %d (line:%d)", rd->ptr, line);
 }
 
 #define invalid_stream(L,rd) invalid_stream_line(L,rd,__LINE__)
@@ -435,7 +434,6 @@ unpack_one(lua_State *L, struct reader *rd) {
 int from_bin(lua_State *L) {
     size_t len;
     const char *buffer = luaL_checklstring(L, 1, &len);
-    lua_settop(L,0);
 
     struct reader rd;
     reader_init(&rd, buffer, len);
@@ -448,5 +446,5 @@ int from_bin(lua_State *L) {
         push_value(L, &rd, *t & 0x7, *t >> 3);
     }
 
-    return lua_gettop(L);
+    return lua_gettop(L) - 1;
 }
