@@ -384,7 +384,7 @@ push_value(lua_State *L, struct reader *rd, int type, int cookie) {
             lua_pushnumber(L,get_real(L,rd));
         } else {
             int64_t n = get_integer(L, rd, cookie);
-            if (abs(n) > MAX_LUA_INTEGER) {
+            if (llabs(n) > MAX_LUA_INTEGER) {
                 lua_pushnumber(L, (lua_Number)n);
             } else {
                 lua_pushinteger(L, (lua_Integer)n);
