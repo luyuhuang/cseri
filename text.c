@@ -61,7 +61,7 @@ is_name(const char *str, size_t len) {
 
 inline static void
 append_escape_string(struct buffer *bf, const char *str, size_t len) {
-    for (int i = 0; i < len; ++i) {
+    for (size_t i = 0; i < len; ++i) {
         const char *esc = char2escape[(unsigned char)str[i]];
         if (esc)
             buffer_append_str(bf, esc);

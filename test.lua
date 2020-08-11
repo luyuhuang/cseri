@@ -103,4 +103,7 @@ assert(ok == false and msg == "serialize can't pack too depth table")
 local ok, msg = pcall(cseri.tobin, deep)
 assert(ok == false and msg == "serialize can't pack too depth table")
 
+assert(cseri.frombin(cseri.tobin(0x7fffffffffffffff)) == 0x7fffffffffffffff)
+assert(cseri.frombin(cseri.tobin(0xffffffffffffffff)) == 0xffffffffffffffff)
+
 print("passed")

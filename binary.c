@@ -1,6 +1,7 @@
 #include <lauxlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include "common.h"
 #include "buffer.h"
 
@@ -27,6 +28,8 @@
 #define COMBINE_TYPE(t,v) ((t) | (v) << 3)
 
 #define buffer_append(bf, data, len) buffer_append(bf, (char*)data, len)
+
+#define MAX_LUA_INTEGER  (1ULL << (sizeof(lua_Integer) * 8 - 1)) - 1
 
 /* dummy union to get native endianness */
 static const union {
@@ -59,7 +62,7 @@ append_boolean(struct buffer *bf, int boolean) {
 }
 
 static inline void
-append_integer(struct buffer *bf, lua_Integer v) {
+append_integer(struct buffer *bf, int64_t v) {
     int type = TYPE_NUMBER;
     if (v == 0) {
         uint8_t n = COMBINE_TYPE(type , TYPE_NUMBER_ZERO);
@@ -270,7 +273,7 @@ invalid_stream_line(lua_State *L, struct reader *rd, int line) {
 
 #define invalid_stream(L,rd) invalid_stream_line(L,rd,__LINE__)
 
-static lua_Integer
+static int64_t
 get_integer(lua_State *L, struct reader *rd, int cookie) {
     switch (cookie) {
     case TYPE_NUMBER_ZERO:
@@ -380,7 +383,12 @@ push_value(lua_State *L, struct reader *rd, int type, int cookie) {
         if (cookie == TYPE_NUMBER_REAL) {
             lua_pushnumber(L,get_real(L,rd));
         } else {
-            lua_pushinteger(L, get_integer(L, rd, cookie));
+            int64_t n = get_integer(L, rd, cookie);
+            if (abs(n) > MAX_LUA_INTEGER) {
+                lua_pushnumber(L, (lua_Number)n);
+            } else {
+                lua_pushinteger(L, (lua_Integer)n);
+            }
         }
         break;
     case TYPE_SHORT_STRING:
