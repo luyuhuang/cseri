@@ -332,6 +332,9 @@ get_real(lua_State *L, struct reader *rd) {
 static void
 get_buffer(lua_State *L, struct reader *rd, int len) {
     const char *p = reader_read(rd, len);
+    if (p == NULL) {
+        invalid_stream(L, rd);
+    }
     lua_pushlstring(L, p, len);
 }
 

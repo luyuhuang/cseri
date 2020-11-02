@@ -107,3 +107,7 @@ assert(cseri.frombin(cseri.tobin(0x7fffffffffffffff)) == 0x7fffffffffffffff)
 assert(cseri.frombin(cseri.tobin(0xffffffffffffffff)) == 0xffffffffffffffff)
 
 print("passed")
+
+local bin = cseri.tobin("aaa"):sub(1, 2)
+local ok, msg = pcall(cseri.frombin, bin)
+assert(ok == false and msg == "Invalid serialize stream 1 (line:336)")
